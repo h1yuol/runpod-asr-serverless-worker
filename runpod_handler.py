@@ -7,6 +7,7 @@ import gc
 import torch
 import tempfile
 import opencc # For Traditional to Simplified Chinese conversion
+import json # Added for S3 output upload
 
 # Configuration (expected to be set as environment variables in RunPod)
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
@@ -234,9 +235,36 @@ def handler(job):
                 "start_time": round(current_start_time_out, 2) if current_start_time_out is not None else None
             })
             
-        final_output = {"segments": output_segments, "language_code": detected_language} # Report the final language used/detected
+        final_output_data = {"segments": output_segments, "language_code": detected_language} # Report the final language used/detected
         
-        return final_output
+        # --- Upload result to S3 and return URI ---
+        try:
+            output_s3_key_basename = os.path.splitext(os.path.basename(s3_object_key))[0] + ".json"
+            output_s3_key = f"text/{output_s3_key_basename}"
+            
+            s3_client.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=output_s3_key,
+                Body=json.dumps(final_output_data, indent=2, ensure_ascii=False), # ensure_ascii=False for Chinese characters
+                ContentType='application/json'
+            )
+            output_s3_uri = f"s3://{S3_BUCKET_NAME}/{output_s3_key}"
+            print(f"Successfully uploaded result to {output_s3_uri}")
+            return {"output_s3_uri": output_s3_uri}
+
+        except ClientError as e:
+            print(f"Error uploading result to S3: {e}")
+            # Return the data directly if S3 upload fails, but also include an error message about the failure
+            return {
+                "error": f"Failed to upload result to S3: {str(e)}",
+                "data": final_output_data # Provide data as fallback
+            }
+        except Exception as e: # Catch any other unexpected error during S3 upload
+            print(f"Unexpected error during S3 result upload: {e}")
+            return {
+                "error": f"Unexpected error uploading result to S3: {str(e)}",
+                "data": final_output_data # Provide data as fallback
+            }
 
     except Exception as e:
         print(f"Error during ASR processing: {e}")
