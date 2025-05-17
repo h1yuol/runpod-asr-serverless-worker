@@ -5,8 +5,13 @@ import boto3
 import runpod
 import whisperx
 import torch
+import torchaudio
 from pyannote.audio import Pipeline
 import logging
+import warnings
+
+# Suppress torchaudio backend warning
+warnings.filterwarnings("ignore", message="torchaudio._backend.set_audio_backend has been deprecated")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,10 +46,14 @@ def process_audio(audio_path):
     try:
         # Load WhisperX model
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Using device: {device}")
+        
         model = whisperx.load_model("large-v3", device)
+        logger.info("WhisperX model loaded successfully")
         
         # Transcribe audio
         result = model.transcribe(audio_path, batch_size=16)
+        logger.info("Audio transcription completed")
         
         # Load speaker diarization model
         diarize_model = Pipeline.from_pretrained(
@@ -52,12 +61,15 @@ def process_audio(audio_path):
             use_auth_token=os.environ.get("HF_TOKEN")
         )
         diarize_model.to(torch.device(device))
+        logger.info("Speaker diarization model loaded successfully")
         
         # Perform diarization
         diarize_segments = diarize_model(audio_path)
+        logger.info("Speaker diarization completed")
         
         # Align speaker labels with transcription
         result = whisperx.assign_word_speakers(diarize_segments, result)
+        logger.info("Speaker labels aligned with transcription")
         
         # Format results
         formatted_results = []
@@ -86,9 +98,11 @@ def handler(event):
         
         # Download audio file from S3
         audio_path = download_from_s3(s3_key)
+        logger.info(f"Audio file downloaded from S3: {s3_key}")
         
         # Process audio
         results = process_audio(audio_path)
+        logger.info("Audio processing completed")
         
         # Save results to temporary file
         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as temp_file:
@@ -98,6 +112,7 @@ def handler(event):
         # Upload results to S3
         output_key = s3_key.replace('audio/', 'text/').replace('.wav', '.json')
         upload_to_s3(temp_file_path, output_key)
+        logger.info(f"Results uploaded to S3: {output_key}")
         
         # Clean up temporary files
         os.unlink(audio_path)
