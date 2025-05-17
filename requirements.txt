@@ -1,21 +1,11 @@
-runpod
-whisperx==3.1.3
-boto3
-numpy<2.0
-opencc-python-reimplemented
-huggingface_hub>=0.20.0
-
-# Explicitly install PyTorch for CUDA 12.1 and Python 3.11
-# This might help resolve cuDNN library issues.
-# The index-url will be handled by pip within the Docker build if specified directly in the RUN command, 
-# or we can add the --index-url flag to the pip install command in the Dockerfile.
-# For now, just listing the packages. The Dockerfile's pip install command will need the index URL.
-torch==2.3.1
-torchvision==0.18.1
-torchaudio==2.3.1
-
-# torch and torchaudio are often included in the base image or pulled by whisperx
-# If base image has a compatible torch, these might not be strictly needed here
-# Forcing versions that worked with whisperx locally:
-# torch==2.2.2
-# torchaudio==2.2.2 
+runpod==1.5.0
+whisperx==3.1.1
+torch>=2.0.0
+torchaudio>=2.0.0
+boto3>=1.26.0
+numpy>=1.20.0
+ffmpeg-python>=0.2.0
+pyannote.audio>=3.1.1
+transformers>=4.30.0
+datasets>=2.12.0
+accelerate>=0.20.0 
