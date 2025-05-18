@@ -48,7 +48,8 @@ def process_audio(audio_path):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Using device: {device}")
         
-        model = whisperx.load_model("large-v3", device)
+        # Load model and compute type
+        model = whisperx.load_model("large-v3", device, compute_type="float16")
         logger.info("WhisperX model loaded successfully")
         
         # Transcribe audio
@@ -56,11 +57,7 @@ def process_audio(audio_path):
             audio_path,
             batch_size=16,
             language=None,  # Auto-detect language
-            multilingual=True,
-            max_new_tokens=128,
-            clip_timestamps=None,
-            hallucination_silence_threshold=None,
-            hotwords=None
+            compute_type="float16"
         )
         logger.info("Audio transcription completed")
         
