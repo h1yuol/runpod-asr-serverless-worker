@@ -52,7 +52,16 @@ def process_audio(audio_path):
         logger.info("WhisperX model loaded successfully")
         
         # Transcribe audio
-        result = model.transcribe(audio_path, batch_size=16)
+        result = model.transcribe(
+            audio_path,
+            batch_size=16,
+            language=None,  # Auto-detect language
+            multilingual=True,
+            max_new_tokens=128,
+            clip_timestamps=None,
+            hallucination_silence_threshold=None,
+            hotwords=None
+        )
         logger.info("Audio transcription completed")
         
         # Load speaker diarization model
