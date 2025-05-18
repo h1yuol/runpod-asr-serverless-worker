@@ -105,6 +105,9 @@ def process_audio(audio_path):
         return formatted_results
     except Exception as e:
         logger.error(f"Error processing audio: {str(e)}")
+        # print stack trace
+        import traceback
+        traceback.print_exc()
         raise
 
 def handler(event):
