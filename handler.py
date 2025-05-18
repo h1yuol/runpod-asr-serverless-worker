@@ -52,12 +52,18 @@ def process_audio(audio_path):
         model = whisperx.load_model("large-v3", device, compute_type="float16")
         logger.info("WhisperX model loaded successfully")
         
-        # Transcribe audio
+        # Transcribe audio with proper parameters
         result = model.transcribe(
             audio_path,
             batch_size=16,
             language=None,  # Auto-detect language
-            compute_type="float16"
+            compute_type="float16",
+            # Required parameters for TranscriptionOptions
+            multilingual=True,
+            max_new_tokens=128,
+            clip_timestamps=[],
+            hallucination_silence_threshold=0.0,
+            hotwords=[]
         )
         logger.info("Audio transcription completed")
         
