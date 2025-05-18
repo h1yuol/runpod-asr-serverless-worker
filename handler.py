@@ -29,7 +29,7 @@ if not HF_TOKEN:
 
 TRANSCRIPTION_MODEL = "large-v3"
 
-DEFAULT_SUFFIX = ".wav"
+DEFAULT_SUFFIX = ".m4a"
 
 COMPUTE_TYPE = "float16"
 
@@ -82,7 +82,7 @@ def process_audio(audio_path):
         import gc; gc.collect(); torch.cuda.empty_cache(); del model_a
 
         # 3. Assign speaker labels
-        diarize_model = whisperx.diarize.DiarizationPipeline(use_auth_token=HF_TOKEN, device=device)
+        diarize_model = whisperx.diarize.DiarizationPipeline(model_name="pyannote/speaker-diarization-3.1", use_auth_token=HF_TOKEN, device=device)
 
         # add min/max number of speakers if known
         diarize_segments = diarize_model(audio)
@@ -90,7 +90,8 @@ def process_audio(audio_path):
 
         result = whisperx.assign_word_speakers(diarize_segments, result)
 
-        print(result['segments'])
+        print('Preview first segment:')
+        print(result['segments'][:1])
         
         # Format results
         formatted_results = []
@@ -134,7 +135,7 @@ def handler(event):
             temp_file_path = temp_file.name
         
         # Upload results to S3
-        output_key = s3_key.replace('audio/', 'text/').replace('.wav', '.json')
+        output_key = s3_key.replace('audio/', 'text/').replace(DEFAULT_SUFFIX, '.json')
         upload_to_s3(temp_file_path, output_key)
         logger.info(f"Results uploaded to S3: {output_key}")
         
@@ -146,7 +147,7 @@ def handler(event):
             "status": "success",
             "output": {
                 "s3_key": output_key,
-                "results": results
+                "preview": results[:5]
             }
         }
     except Exception as e:
